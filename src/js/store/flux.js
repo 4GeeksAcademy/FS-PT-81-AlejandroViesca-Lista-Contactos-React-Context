@@ -1,43 +1,81 @@
 const getState = ({ getStore, getActions, setStore }) => {
 	return {
 		store: {
-			demo: [
-				{
-					title: "FIRST",
-					background: "white",
-					initial: "white"
-				},
-				{
-					title: "SECOND",
-					background: "white",
-					initial: "white"
-				}
-			]
 		},
 		actions: {
-			// Use getActions to call a function within a fuction
-			exampleFunction: () => {
-				getActions().changeColor(0, "green");
-			},
-			loadSomeData: () => {
-				/**
-					fetch().then().then(data => setStore({ "foo": data.bar }))
-				*/
-			},
-			changeColor: (index, color) => {
-				//get the store
-				const store = getStore();
+			selectContact: (contact) =>setStore({selected:  contact}),
 
-				//we have to loop the entire demo array to look for the respective index
-				//and change its color
-				const demo = store.demo.map((elm, i) => {
-					if (i === index) elm.background = color;
-					return elm;
-				});
+			getUser: async () => {
+				try {
+					const resp = await fetch('https://playground.4geeks.com/contact/agendas/viesk/contacts');
+					// Si el usuario no esta creado llama a la funcion de crear usuairos
+					if (resp.status == 404) { 
+						await getActions().createUser();
+						return
+					}
+					if (!resp.ok) throw new Error('ALGO A SALIDO MAL RECIBIENDO LOS DATOS');
+					const data = await resp.json();
+					//console.log(data);
+					setStore({contacts: data.contacts});
+				} catch (error) {
+					console.error(error);
+				}
+			},
 
-				//reset the global store
-				setStore({ demo: demo });
-			}
+			createUser: async () => {
+				try {
+					const resp = await fetch('https://playground.4geeks.com/contact/agendas/viesk', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'}
+					});
+					if (!resp.ok) throw new Error('ALGO A SALIDO MAL CREANDO EL USUARIO');
+					const data = await resp.json();
+					//console.log('Usuario creado con éxito:', data);
+				} catch (error) {
+					console.error(error);
+				} 
+			},
+
+			createContact: async (data) => {
+				try {
+					const resp = await fetch('https://playground.4geeks.com/contact/agendas/viesk/contacts',{
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'}, 
+						body: JSON.stringify(data),
+					});
+					if (!resp.ok) throw new Error('ALGO A SALIDO MAL CREANDO LA AGENDA');
+						return getActions().getUser()
+				} catch (error) {
+					console.error(error);
+				}
+			},	
+
+			editContact: async (data) => {
+				try {
+					const resp = await fetch('https://playground.4geeks.com/contact/agendas/viesk/contacts/' + data.id,{
+						method: 'PUT',
+						headers: {'Content-Type': 'application/json'}, 
+						body: JSON.stringify(data),
+					});
+					if (!resp.ok) throw new Error('ALGO A SALIDO MAL EDITANDO EL CONTACTO');
+					return getActions().getUser()
+				} catch (error) {
+					console.error(error);
+				}
+			},
+
+			deleteContact: async (id) => {
+				try {
+					//console.log('Id de contacto que se quiere borrar:', id);
+					const resp = await fetch('https://playground.4geeks.com/contact/agendas/viesk/contacts/' + id,{
+						method: 'DELETE',
+					});
+					if (!resp.ok) throw new Error('ALGO A SALIDO MAL BORRANDO EL CONTACTO');
+					return getActions().getUser()
+				} catch (error) {
+					console.error(error);
+				}
+			},
 		}
 	};
 };
